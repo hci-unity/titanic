@@ -44,6 +44,9 @@ public class AvatarRigDriver : MonoBehaviour
     [Tooltip("Match the avatar's head bone to the HMD orientation.")]
     public bool driveHead = true;
 
+    [Tooltip("Constant HMD->head-bone rotation offset for this rig. Baked once (per rig) when the head-bone rest orientation differs from the HMD convention (e.g. a Meshy head that pitches up). Re-derive only if the avatar rig changes.")]
+    public Vector3 headOffsetEuler = Vector3.zero;
+
     [Tooltip("Move the avatar root to stand under the HMD (keeps body beneath the head).")]
     public bool followHmdHorizontal = true;
 
@@ -129,7 +132,7 @@ public class AvatarRigDriver : MonoBehaviour
         RefreshTargets();
 
         if (driveHead && headBone != null)
-            headBone.rotation = headTarget.rotation;
+            headBone.rotation = headTarget.rotation * Quaternion.Euler(headOffsetEuler);
 
         // Wrist rotation: write the hand bones' world rotation directly here, after the
         // animator/IK pass — the same proven technique used for the head above. Each hand
