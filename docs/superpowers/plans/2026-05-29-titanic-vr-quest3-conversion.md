@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **▶ STATUS (2026-05-30) — read the `titanic-vr-conversion` memory "RESUME POINT" for the authoritative current state; it overrides this plan where they differ.** DONE & headset-verified: Tasks 1–3 + 6 (packages/OpenXR, VR rig, smooth locomotion + smooth/snap/none turn, stereo-correct mirror). Task 5 avatar: head + hand-**position** tracking done — implemented with Unity built-in **`OnAnimatorIK`**, NOT the Animation Rigging constraint graph this plan describes (chosen for script-reliability); wrist **rotation** deferred → FinalIK. LEFT: Task 4 in-VR comfort-menu panel, Task 7 boundary-cage geometry, Task 8 polish/cleanup.
+
 **Goal:** Convert the existing desktop first-person Titanic grand-staircase scene into a room-scale **PCVR** experience for the Meta Quest 3, with headset head-look, controller-driven hands, smooth stick locomotion, a toggleable turn-comfort mode, a warn-only ~1 m physical-movement boundary, and a full-body IK avatar the player sees in the existing mirror.
 
 **Architecture:** Replace the desktop input/camera scripts with an XRI `XR Origin` rig (OpenXR provider, Windows Standalone). Keep the scene, lighting, walls, and the real-time planar mirror. Drive a Humanoid avatar through a swappable `PoseSource` abstraction (default: Animation Rigging 3-point IK) so it reflects in the mirror; preserve the layer-8 "mirror-only body" culling. Add two small systems — boundary warning and comfort settings. Validate the mirror under VR stereo early.

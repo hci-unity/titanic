@@ -2,8 +2,12 @@ using UnityEngine;
 
 // Drives the Humanoid mirror avatar from an IPoseSource (head + 2 hands), using Unity's
 // built-in humanoid IK:
-//   - Hands: OnAnimatorIK sets the LeftHand/RightHand IK goals to the controller targets
-//     (Unity solves the arm/elbow). Requires "IK Pass" enabled on the Animator layer.
+//   - Hand POSITION: OnAnimatorIK sets the LeftHand/RightHand IK position goals to the
+//     controller targets (Unity solves the arm/elbow). Requires "IK Pass" enabled on the
+//     Animator layer.
+//   - Hand ROTATION: the hand bones' world rotation is written DIRECTLY in LateUpdate (not
+//     via SetIKRotation, whose goal Unity clamps back toward the natural pose). Each wrist
+//     follows its controller through a constant calibrated offset (left/rightHandOffsetEuler).
 //   - Head: the head bone's world rotation is matched to the HMD in LateUpdate (after the
 //     animator writes the pose), so the reflected head turns exactly with the player's head.
 //   - Body: the avatar root follows the HMD horizontally so the body stands under the head
@@ -21,11 +25,10 @@ public class AvatarRigDriver : MonoBehaviour
     [Range(0f, 1f)] public float handWeight = 1f;
 
     [Tooltip("Rotation tracking weight for the hands. 0 = wrists relax naturally; 1 = wrists follow the controllers using the calibrated offsets below.")]
-    [Range(0f, 1f)] public float handRotationWeight = 0f;
+    [Range(0f, 1f)] public float handRotationWeight = 1f;
 
-    [Header("Hand rotation calibration")]
-    [Tooltip("Set TRUE at runtime while holding a neutral hand pose to auto-compute the controller->hand offsets, then this turns itself off and enables rotation tracking.")]
-    public bool calibrateHands = false;
+    [Header("Hand rotation offsets (calibrated constants)")]
+    [Tooltip("Constant controller->hand-bone rotation offset per hand. Baked once for this rig + Touch controllers; the same for every user. Re-derive only if the avatar rig changes.")]
     public Vector3 leftHandOffsetEuler = Vector3.zero;
     public Vector3 rightHandOffsetEuler = Vector3.zero;
 
@@ -44,15 +47,10 @@ public class AvatarRigDriver : MonoBehaviour
     [Tooltip("Move the avatar root to stand under the HMD (keeps body beneath the head).")]
     public bool followHmdHorizontal = true;
 
-    [Tooltip("Temporary: log runtime IK state to the console.")]
-    public bool debugLog = false;
-
     IPoseSource poseSource;
     Animator animator;
     Transform headTarget, leftHandTarget, rightHandTarget;
     Transform headBone, leftHandBone, rightHandBone;
-    int _ikCalls;
-    int _calibrateState;
 
     void Awake()
     {
@@ -90,7 +88,6 @@ public class AvatarRigDriver : MonoBehaviour
     void OnAnimatorIK(int layerIndex)
     {
         if (!Ready) return;
-        _ikCalls++;
         RefreshTargets();
 
         if (followHmdHorizontal)
@@ -99,15 +96,14 @@ public class AvatarRigDriver : MonoBehaviour
             transform.position = new Vector3(hp.x, transform.position.y, hp.z);
         }
 
+        // Position only. The wrist ROTATION is driven directly in LateUpdate (see below) —
+        // Unity's humanoid hand-rotation IK goal gets clamped back toward the natural pose,
+        // so SetIKRotation can't actually orient the wrist.
         animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, handWeight);
-        animator.SetIKRotationWeight(AvatarIKGoal.LeftHand, handRotationWeight);
         animator.SetIKPosition(AvatarIKGoal.LeftHand, leftHandTarget.position);
-        animator.SetIKRotation(AvatarIKGoal.LeftHand, leftHandTarget.rotation * Quaternion.Euler(leftHandOffsetEuler));
 
         animator.SetIKPositionWeight(AvatarIKGoal.RightHand, handWeight);
-        animator.SetIKRotationWeight(AvatarIKGoal.RightHand, handRotationWeight);
         animator.SetIKPosition(AvatarIKGoal.RightHand, rightHandTarget.position);
-        animator.SetIKRotation(AvatarIKGoal.RightHand, rightHandTarget.rotation * Quaternion.Euler(rightHandOffsetEuler));
 
         SetElbowHint(AvatarIKHint.LeftElbow, HumanBodyBones.LeftLowerArm, -1f);
         SetElbowHint(AvatarIKHint.RightElbow, HumanBodyBones.RightLowerArm, 1f);
@@ -126,7 +122,7 @@ public class AvatarRigDriver : MonoBehaviour
         animator.SetIKHintPosition(hint, p);
     }
 
-    // Head match + hand-rotation calibration, after the animator has written the body pose.
+    // Head + wrist rotation, after the animator has written the body pose.
     void LateUpdate()
     {
         if (!Ready) return;
@@ -135,22 +131,17 @@ public class AvatarRigDriver : MonoBehaviour
         if (driveHead && headBone != null)
             headBone.rotation = headTarget.rotation;
 
-        // Calibration: frame 1 forces relaxed wrists, frame 2 captures the natural pose as the offset.
-        if (calibrateHands)
-        {
-            handRotationWeight = 0f;
-            _calibrateState = 1;
-            calibrateHands = false;
-        }
-        else if (_calibrateState == 1)
+        // Wrist rotation: write the hand bones' world rotation directly here, after the
+        // animator/IK pass — the same proven technique used for the head above. Each hand
+        // follows its controller through the calibrated constant offset. Blended by weight.
+        if (handRotationWeight > 0f)
         {
             if (leftHandBone != null)
-                leftHandOffsetEuler = (Quaternion.Inverse(leftHandTarget.rotation) * leftHandBone.rotation).eulerAngles;
+                leftHandBone.rotation = Quaternion.Slerp(leftHandBone.rotation,
+                    leftHandTarget.rotation * Quaternion.Euler(leftHandOffsetEuler), handRotationWeight);
             if (rightHandBone != null)
-                rightHandOffsetEuler = (Quaternion.Inverse(rightHandTarget.rotation) * rightHandBone.rotation).eulerAngles;
-            handRotationWeight = 1f;
-            _calibrateState = 0;
-            Debug.Log($"[MR] Calibrated hand offsets  L={leftHandOffsetEuler}  R={rightHandOffsetEuler}");
+                rightHandBone.rotation = Quaternion.Slerp(rightHandBone.rotation,
+                    rightHandTarget.rotation * Quaternion.Euler(rightHandOffsetEuler), handRotationWeight);
         }
     }
 }
