@@ -82,5 +82,5 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# Superpowers brainstorming sessions
-.superpowers/
+# The Build folder contains the output of the build process
+Build/

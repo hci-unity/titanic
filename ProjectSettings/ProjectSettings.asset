@@ -13,7 +13,7 @@ PlayerSettings:
   useOnDemandResources: 0
   accelerometerFrequency: 60
   companyName: DefaultCompany
-  productName: temple-run
+  productName: titanic
   defaultCursor: {fileID: 0}
   cursorHotspot: {x: 0, y: 0}
   m_SplashScreenBackgroundColor: {r: 0.13725491, g: 0.12156863, b: 0.1254902, a: 1}
@@ -144,7 +144,10 @@ PlayerSettings:
   visionOSBundleVersion: 1.0
   tvOSBundleVersion: 1.0
   bundleVersion: 0.1.0
-  preloadedAssets: []
+  preloadedAssets:
+  - {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  - {fileID: 7969953698224123767, guid: f369c33fc72ca914aa87f8e6afd5a242, type: 2}
+  - {fileID: -3861924174572704216, guid: 850d808f71f18cf4c9106e5880b3caf3, type: 2}
   metroInputSource: 0
   wsaTransparentSwapchain: 0
   xboxOneDisableKinectGpuReservation: 1
@@ -522,7 +525,10 @@ PlayerSettings:
       m_Height: 720
       m_Kind: 1
       m_SubKind: 
-  m_BuildTargetBatching: []
+  m_BuildTargetBatching:
+  - m_BuildTarget: Standalone
+    m_StaticBatching: 1
+    m_DynamicBatching: 0
   m_BuildTargetShaderSettings: []
   m_BuildTargetGraphicsJobs: []
   m_BuildTargetGraphicsJobMode: []
@@ -844,14 +850,14 @@ PlayerSettings:
   editorAssembliesCompatibilityLevel: 1
   m_RenderingPath: 1
   m_MobileRenderingPath: 1
-  metroPackageName: temple-run
+  metroPackageName: titanic
   metroPackageVersion: 
   metroCertificatePath: 
   metroCertificatePassword: 
   metroCertificateSubject: 
   metroCertificateIssuer: 
   metroCertificateNotAfter: 0000000000000000
-  metroApplicationDescription: temple-run
+  metroApplicationDescription: titanic
   wsaImages: {}
   metroTileShortName: 
   metroTileShowName: 0
@@ -925,7 +931,7 @@ PlayerSettings:
   cloudProjectId: 49c6964a-9155-4234-9f8b-687b434b0deb
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: temple-run
+  projectName: titanic
   organizationId: contact_unity300
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
