@@ -2021,6 +2021,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7347985736721345035, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+    - {fileID: 6480925242510836759, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
@@ -2329,6 +2330,10 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 42.47, y: 2.75, z: 1.01}
   followHmdHorizontal: 1
+  followYaw: 1
+  startAngle: 40
+  stopAngle: 5
+  maxYawSpeed: 180
 --- !u!114 &796977880
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3678,6 +3683,10 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 33.31, y: 354.3, z: 0.04}
   followHmdHorizontal: 1
+  followYaw: 1
+  startAngle: 40
+  stopAngle: 5
+  maxYawSpeed: 180
 --- !u!95 &1224650457 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: bd449fe57070905439af8f6544824d6c, type: 3}
@@ -7561,6 +7570,10 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 0, y: 0, z: 0}
   followHmdHorizontal: 1
+  followYaw: 1
+  startAngle: 40
+  stopAngle: 5
+  maxYawSpeed: 180
 --- !u!95 &1934477328 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 6982812146204527121, guid: 64dce48905ffd9b4293e595fa6941544, type: 3}

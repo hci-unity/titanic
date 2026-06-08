@@ -50,10 +50,43 @@ public class AvatarRigDriver : MonoBehaviour
     [Tooltip("Move the avatar root to stand under the HMD (keeps body beneath the head).")]
     public bool followHmdHorizontal = true;
 
+    [Header("Torso follow (head-vs-body yaw)")]
+    [Tooltip("Rotate the avatar root to follow the head's yaw with a hysteresis dead-zone: brief/small glances keep the shoulders still; sustained/large head turns swing the torso to match. Cosmetic — affects only the mirror reflection.")]
+    public bool followYaw = true;
+
+    [Tooltip("Head-vs-torso yaw offset (deg) at which the torso STARTS following.")]
+    public float startAngle = 40f;
+
+    [Tooltip("Offset (deg) at which the torso STOPS following (hysteresis; keep < startAngle).")]
+    public float stopAngle = 5f;
+
+    [Tooltip("How fast the torso swings to catch up while following (deg/s).")]
+    public float maxYawSpeed = 180f;
+
+    bool yawFollowing; // hysteresis state for StepYaw
+
     IPoseSource poseSource;
     Animator animator;
     Transform headTarget, leftHandTarget, rightHandTarget;
     Transform headBone, leftHandBone, rightHandBone;
+
+    // Hysteresis-gated yaw step. Returns the new root yaw (deg). `following` carries the
+    // dead-zone state across frames: once |offset| >= startAngle the torso follows the head
+    // until |offset| <= stopAngle, then it locks again (glance = no follow, commit = follow).
+    public static float StepYaw(float currentYaw, float desiredYaw, float dt,
+        float startAngle, float stopAngle, float maxYawSpeed, ref bool following)
+    {
+        float offset = Mathf.DeltaAngle(currentYaw, desiredYaw);
+        float mag = Mathf.Abs(offset);
+
+        if (!following && mag >= startAngle) following = true;
+        else if (following && mag <= stopAngle) following = false;
+
+        if (!following) return currentYaw;
+
+        float step = Mathf.Min(mag, maxYawSpeed * Mathf.Max(dt, 0f));
+        return currentYaw + Mathf.Sign(offset) * step;
+    }
 
     void Awake()
     {
@@ -97,6 +130,19 @@ public class AvatarRigDriver : MonoBehaviour
         {
             Vector3 hp = headTarget.position;
             transform.position = new Vector3(hp.x, transform.position.y, hp.z);
+        }
+
+        if (followYaw)
+        {
+            Vector3 f = headTarget.forward; f.y = 0f;
+            if (f.sqrMagnitude > 1e-6f)
+            {
+                float desiredYaw = Quaternion.LookRotation(f).eulerAngles.y;
+                float newYaw = StepYaw(transform.eulerAngles.y, desiredYaw, Time.deltaTime,
+                    startAngle, stopAngle, maxYawSpeed, ref yawFollowing);
+                Vector3 e = transform.eulerAngles;
+                transform.eulerAngles = new Vector3(e.x, newYaw, e.z);
+            }
         }
 
         // Position only. The wrist ROTATION is driven directly in LateUpdate (see below) —
