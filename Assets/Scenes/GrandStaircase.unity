@@ -1845,31 +1845,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 1.28
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -6.56
+      value: -6.431
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -9
+      value: -8.4
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 1
+      value: 0.5005146
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0
+      value: 0.86572814
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -1877,7 +1877,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
+      value: 119.932
       objectReference: {fileID: 0}
     - target: {fileID: 1717954561962503726, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -2298,13 +2298,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96875261a30da31418c2a09d9e37ca64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LocomotionAnimatorDriver
-  moveBinding: <XRController>{LeftHand}/thumbstick
+  hmd: {fileID: 0}
   animator: {fileID: 796977877}
   speedParameter: Speed
   motionSpeedParameter: MotionSpeed
+  walkSpeed: 0.75
   maxSpeed: 2
-  deadzone: 0.15
+  motionSpeedMin: 1
+  motionSpeedMax: 1.25
+  deadzone: 0.1
+  glitchSpeed: 6
   damp: 0.12
+  moveBinding: <XRController>{LeftHand}/thumbstick
   source: {fileID: 785430934}
 --- !u!114 &796977879
 MonoBehaviour:
@@ -2318,11 +2323,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cb2a0102aebea1428934b83d5323141, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvatarRigDriver
-  poseSourceBehaviour: {fileID: 828887438}
+  poseSourceBehaviour: {fileID: 856478213}
   handWeight: 1
   handRotationWeight: 1
-  leftHandOffsetEuler: {x: 357.59, y: 95.23, z: 94.42}
-  rightHandOffsetEuler: {x: 355.92, y: 264.29, z: 267.59}
+  leftHandOffsetEuler: {x: 19.96, y: 85.82, z: 85.62}
+  rightHandOffsetEuler: {x: 14.07, y: 264.3, z: 274.79}
   elbowHintWeight: 1
   elbowOut: 0.45
   elbowBack: 0.3
@@ -2330,6 +2335,11 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 42.47, y: 2.75, z: 1.01}
   followHmdHorizontal: 1
+  headRelativeHands: 1
+  autoReach: 1
+  reachScale: 1.25
+  referenceReach: 0.75
+  reachDecaySpeed: 0.08
   followYaw: 1
   startAngle: 40
   stopAngle: 5
@@ -2424,6 +2434,8 @@ Transform:
   - {fileID: 1934477324}
   - {fileID: 1224650454}
   - {fileID: 796977875}
+  - {fileID: 1814736276}
+  - {fileID: 856478212}
   m_Father: {fileID: 785430930}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &828887438
@@ -2653,6 +2665,52 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &856478211
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 856478212}
+  - component: {fileID: 856478213}
+  m_Layer: 0
+  m_Name: InputModeRouter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &856478212
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856478211}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 828887437}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &856478213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 856478211}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8d626c954eaafd41a738ca5d3cd8f6c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InputModeRouter
+  controllerSourceBehaviour: {fileID: 828887438}
+  handSource: {fileID: 1814736275}
 --- !u!1 &875321083
 GameObject:
   m_ObjectHideFlags: 0
@@ -3671,7 +3729,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cb2a0102aebea1428934b83d5323141, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvatarRigDriver
-  poseSourceBehaviour: {fileID: 828887438}
+  poseSourceBehaviour: {fileID: 856478213}
   handWeight: 1
   handRotationWeight: 1
   leftHandOffsetEuler: {x: 359.01, y: 93.95, z: 89.16}
@@ -3683,6 +3741,11 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 33.31, y: 354.3, z: 0.04}
   followHmdHorizontal: 1
+  headRelativeHands: 1
+  autoReach: 1
+  reachScale: 1
+  referenceReach: 0.75
+  reachDecaySpeed: 0.08
   followYaw: 1
   startAngle: 40
   stopAngle: 5
@@ -3704,13 +3767,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96875261a30da31418c2a09d9e37ca64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LocomotionAnimatorDriver
-  moveBinding: <XRController>{LeftHand}/thumbstick
+  hmd: {fileID: 0}
   animator: {fileID: 1224650457}
   speedParameter: Speed
   motionSpeedParameter: MotionSpeed
+  walkSpeed: 0.75
   maxSpeed: 2
-  deadzone: 0.15
+  motionSpeedMin: 1
+  motionSpeedMax: 1.25
+  deadzone: 0.1
+  glitchSpeed: 6
   damp: 0.12
+  moveBinding: <XRController>{LeftHand}/thumbstick
   source: {fileID: 785430934}
 --- !u!114 &1224650459
 MonoBehaviour:
@@ -6789,6 +6857,11 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 2103246817094391528, guid: 08063b37d65ba594ab08d87d84db0b75, type: 3}
+--- !u!4 &1742132508 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1680501587, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+  m_PrefabInstance: {fileID: 785430920}
+  m_PrefabAsset: {fileID: 0}
 --- !u!64 &1749767138
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -6926,6 +6999,55 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 8809078808923920692, guid: 08063b37d65ba594ab08d87d84db0b75, type: 3}
+--- !u!1 &1814736274
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1814736276}
+  - component: {fileID: 1814736275}
+  m_Layer: 0
+  m_Name: HandTrackingPoseSource
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1814736275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1814736274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbe0749868f1f5449adf298f36031863, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HandTrackingPoseSource
+  hmd: {fileID: 1957467851}
+  trackingSpace: {fileID: 1742132508}
+  leftWristRotationOffsetEuler: {x: 20.11352, y: 354.6065, z: 291.856}
+  rightWristRotationOffsetEuler: {x: 14.7638, y: 8.971128, z: 70.28875}
+  handPositionOffset: {x: 0, y: 0, z: 0}
+--- !u!4 &1814736276
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1814736274}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 828887437}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1830195126
 GameObject:
   m_ObjectHideFlags: 0
@@ -6956,6 +7078,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::QuitOnButton
   quitBinding: <XRController>{LeftHand}/secondaryButton
+  quitKeyBinding: <Keyboard>/escape
 --- !u!4 &1830195128
 Transform:
   m_ObjectHideFlags: 0
@@ -7558,7 +7681,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7cb2a0102aebea1428934b83d5323141, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AvatarRigDriver
-  poseSourceBehaviour: {fileID: 828887438}
+  poseSourceBehaviour: {fileID: 856478213}
   handWeight: 1
   handRotationWeight: 1
   leftHandOffsetEuler: {x: 286.55, y: 251.68, z: 307.19}
@@ -7570,6 +7693,11 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 0, y: 0, z: 0}
   followHmdHorizontal: 1
+  headRelativeHands: 1
+  autoReach: 1
+  reachScale: 1
+  referenceReach: 0.75
+  reachDecaySpeed: 0.08
   followYaw: 1
   startAngle: 40
   stopAngle: 5
@@ -7591,13 +7719,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96875261a30da31418c2a09d9e37ca64, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LocomotionAnimatorDriver
-  moveBinding: <XRController>{LeftHand}/thumbstick
+  hmd: {fileID: 0}
   animator: {fileID: 1934477328}
   speedParameter: Speed
   motionSpeedParameter: MotionSpeed
+  walkSpeed: 0.75
   maxSpeed: 2
-  deadzone: 0.15
+  motionSpeedMin: 1
+  motionSpeedMax: 1.25
+  deadzone: 0.1
+  glitchSpeed: 6
   damp: 0.12
+  moveBinding: <XRController>{LeftHand}/thumbstick
   source: {fileID: 785430934}
 --- !u!114 &1934477330
 MonoBehaviour:

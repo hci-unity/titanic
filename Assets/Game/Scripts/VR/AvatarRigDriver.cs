@@ -50,6 +50,28 @@ public class AvatarRigDriver : MonoBehaviour
     [Tooltip("Move the avatar root to stand under the HMD (keeps body beneath the head).")]
     public bool followHmdHorizontal = true;
 
+    [Header("Hand reach (head-relative mapping)")]
+    [Tooltip("Place hand IK goals relative to the AVATAR's head instead of absolute world space, so a " +
+             "shorter/differently-proportioned avatar reaches naturally. Applies to both controllers and hand tracking.")]
+    public bool headRelativeHands = true;
+
+    [Tooltip("Auto-adapt reach to the CURRENT wearer by their MEASURED reach (running max hand-to-head). " +
+             "Scales reachScale by (referenceReach / current user's reach) so a shorter/taller tester's " +
+             "elbows straighten the same as the calibrating user's. Decays for tester handovers.")]
+    public bool autoReach = true;
+
+    [Tooltip("Reach scale tuned for the CALIBRATING user (per character). 1 = hands map 1:1 from head; " +
+             ">1 lengthens reach. With autoReach on, this is the value at the reference user's reach.")]
+    public float reachScale = 1f;
+
+    [Tooltip("The calibrating user's measured reach (m, hand-to-head at full extension). Same on all " +
+             "characters. Used by autoReach to rescale for other users. Baked once in-headset.")]
+    public float referenceReach = 0.75f;
+
+    [Tooltip("How fast the measured-reach estimate shrinks toward smaller reaches (m/s). Lets a shorter " +
+             "tester's reach take over within a few seconds after a handover; grows instantly.")]
+    public float reachDecaySpeed = 0.08f;
+
     [Header("Torso follow (head-vs-body yaw)")]
     [Tooltip("Rotate the avatar root to follow the head's yaw with a hysteresis dead-zone: brief/small glances keep the shoulders still; sustained/large head turns swing the torso to match. Cosmetic — affects only the mirror reflection.")]
     public bool followYaw = true;
@@ -64,6 +86,7 @@ public class AvatarRigDriver : MonoBehaviour
     public float maxYawSpeed = 180f;
 
     bool yawFollowing; // hysteresis state for StepYaw
+    float userReach;   // measured-reach estimate for autoReach (seeded to referenceReach)
 
     IPoseSource poseSource;
     Animator animator;
@@ -88,11 +111,35 @@ public class AvatarRigDriver : MonoBehaviour
         return currentYaw + Mathf.Sign(offset) * step;
     }
 
+    // Pure: remap a hand target from the user's head frame onto the avatar's head frame, scaling reach.
+    // Makes a differently-proportioned avatar place its hands naturally relative to its own head.
+    public static Vector3 HeadRelative(Vector3 handPos, Vector3 userHeadPos, Vector3 avatarHeadPos, float reachScale)
+        => avatarHeadPos + (handPos - userHeadPos) * reachScale;
+
+    // Pure: effective reach scale for the current wearer. When auto, rescale the tuned reachScale by
+    // (referenceReach / current user's measured reach) so any arm length straightens the same as the
+    // calibrating user. Clamped so a bad reading can't explode the reach.
+    public static float EffectiveReachScale(bool auto, float reachScale, float referenceReach, float userReach)
+    {
+        if (!auto || userReach <= 0.05f) return reachScale;
+        return Mathf.Clamp(reachScale * referenceReach / userReach, 0.3f, 2.5f);
+    }
+
+    // Pure: track the user's reach as a running max that grows instantly but shrinks slowly (so a brief
+    // retraction doesn't drop it, but a shorter new wearer is adopted within a few seconds). observed is
+    // the clamped hand-to-head distance this frame.
+    public static float StepUserReach(float current, float observed, float dt, float decaySpeed)
+    {
+        if (observed >= current) return observed;
+        return Mathf.MoveTowards(current, observed, Mathf.Max(decaySpeed, 0f) * Mathf.Max(dt, 0f));
+    }
+
     void Awake()
     {
         poseSource = poseSourceBehaviour as IPoseSource;
         animator = GetComponentInChildren<Animator>();
         if (animator != null) animator.applyRootMotion = false; // we drive the root ourselves
+        userReach = referenceReach;
 
         headTarget = NewChild("_HeadTarget");
         leftHandTarget = NewChild("_LeftHandTarget");
@@ -148,11 +195,33 @@ public class AvatarRigDriver : MonoBehaviour
         // Position only. The wrist ROTATION is driven directly in LateUpdate (see below) —
         // Unity's humanoid hand-rotation IK goal gets clamped back toward the natural pose,
         // so SetIKRotation can't actually orient the wrist.
+        //
+        // Hand POSITIONS are optionally remapped into the avatar's head frame (head-relative reach) so a
+        // shorter/differently-proportioned avatar reaches naturally instead of straining toward the
+        // player's absolute hand positions. headTarget.position is the HMD (user head); headBone is the
+        // avatar head. Applies to whichever pose source is active (controllers or hand tracking).
+        Vector3 leftPos = leftHandTarget.position;
+        Vector3 rightPos = rightHandTarget.position;
+        if (headRelativeHands && headBone != null)
+        {
+            Vector3 userHead = headTarget.position;
+            Vector3 avatarHead = headBone.position;
+            if (autoReach)
+            {
+                float obs = Mathf.Clamp(Mathf.Max(
+                    Vector3.Distance(leftPos, userHead), Vector3.Distance(rightPos, userHead)), 0.2f, 1.0f);
+                userReach = StepUserReach(userReach, obs, Time.deltaTime, reachDecaySpeed);
+            }
+            float scale = EffectiveReachScale(autoReach, reachScale, referenceReach, userReach);
+            leftPos = HeadRelative(leftPos, userHead, avatarHead, scale);
+            rightPos = HeadRelative(rightPos, userHead, avatarHead, scale);
+        }
+
         animator.SetIKPositionWeight(AvatarIKGoal.LeftHand, handWeight);
-        animator.SetIKPosition(AvatarIKGoal.LeftHand, leftHandTarget.position);
+        animator.SetIKPosition(AvatarIKGoal.LeftHand, leftPos);
 
         animator.SetIKPositionWeight(AvatarIKGoal.RightHand, handWeight);
-        animator.SetIKPosition(AvatarIKGoal.RightHand, rightHandTarget.position);
+        animator.SetIKPosition(AvatarIKGoal.RightHand, rightPos);
 
         SetElbowHint(AvatarIKHint.LeftElbow, HumanBodyBones.LeftLowerArm, -1f);
         SetElbowHint(AvatarIKHint.RightElbow, HumanBodyBones.RightLowerArm, 1f);

@@ -1,20 +1,24 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Quits the game when a controller button is pressed.
-// Default binding is the left controller's Y button (X = primaryButton, Y = secondaryButton).
-// In a build this calls Application.Quit(); in the editor it stops Play mode.
+// Quits on a controller button (Y, controller mode) OR the keyboard Escape key (operator). In a build
+// this calls Application.Quit(); in the editor it stops Play mode. The poke panel's Exit button also
+// calls Quit() (hands mode).
 [DisallowMultipleComponent]
 public class QuitOnButton : MonoBehaviour
 {
     [Tooltip("Input System binding that quits the game. Default: left controller Y button.")]
     public string quitBinding = "<XRController>{LeftHand}/secondaryButton";
 
+    [Tooltip("Operator keyboard binding that also quits. Default: Escape.")]
+    public string quitKeyBinding = "<Keyboard>/escape";
+
     InputAction quitAction;
 
     void Awake()
     {
         quitAction = new InputAction("QuitGame", InputActionType.Button, quitBinding);
+        quitAction.AddBinding(quitKeyBinding);
     }
 
     void OnEnable() { quitAction?.Enable(); }

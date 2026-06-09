@@ -1,20 +1,19 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-// Feeds the player's movement-stick input into the avatar Animator's locomotion parameters,
-// so the mirror reflection walks/idles with the player. Hands + head stay IK-driven on top
-// (IK pass + AvatarRigDriver.LateUpdate). Root motion stays OFF, so the walk plays in place
-// while AvatarRigDriver positions the body under the HMD.
+// Drives the mirror avatar's locomotion blend tree from the player's PHYSICAL movement (the HMD's
+// horizontal speed in world space), so the reflection walks when the player walks around their room.
+// Works for bare hands AND controllers, and also covers stick/smooth locomotion (which translates the
+// HMD in world space too). Root motion stays OFF; the walk plays in place while AvatarRigDriver keeps
+// the body under the HMD.
 //
-// Why stick input and not CharacterController.velocity: on this XR rig the capsule velocity
-// reads ~1.3 m/s even while standing still (the rig continuously repositions the capsule under
-// the HMD), so it can't distinguish idle from walking. The locomotion stick magnitude is the
-// reliable "intent to move" signal and cleanly returns to zero when released.
+// Why HMD displacement and not CharacterController.velocity: the XR rig continuously repositions the
+// capsule under the HMD, so capsule velocity reads ~1.3 m/s even while standing still. The HMD's
+// world-space horizontal displacement is the reliable "actually moving" signal and is zero when still.
 [DisallowMultipleComponent]
 public class LocomotionAnimatorDriver : MonoBehaviour
 {
-    [Tooltip("Input System binding for the movement stick (Vector2). Magnitude drives the walk.")]
-    public string moveBinding = "<XRController>{LeftHand}/thumbstick";
+    [Tooltip("HMD transform; physical movement is measured from its horizontal displacement. Auto-finds Camera.main if null.")]
+    public Transform hmd;
 
     [Tooltip("Animator with a locomotion blend tree. Auto-found in children if null.")]
     public Animator animator;
@@ -22,24 +21,41 @@ public class LocomotionAnimatorDriver : MonoBehaviour
     [Tooltip("Float parameter driven by movement magnitude (StarterAssetsThirdPerson uses 'Speed').")]
     public string speedParameter = "Speed";
 
-    [Tooltip("Clip-playback-speed parameter; gates the walk clip so idle doesn't animate (StarterAssets 'MotionSpeed').")]
+    [Tooltip("Clip-playback-speed parameter; gates the walk clip so idle doesn't animate ('MotionSpeed').")]
     public string motionSpeedParameter = "MotionSpeed";
 
-    [Tooltip("Speed value at full stick deflection (tune to the blend tree; ~2 = walk, higher leans into run).")]
-    public float maxSpeed = 2.0f;
+    [Tooltip("Physical speed (m/s) that maps to a full walk in the blend tree. LOW = animation reacts " +
+             "strongly to small real movement.")]
+    public float walkSpeed = 0.5f;
 
-    [Tooltip("Stick magnitude below this counts as idle (snaps Speed + MotionSpeed to 0).")]
-    public float deadzone = 0.15f;
+    [Tooltip("Speed value sent at full movement (tune to the blend tree; ~2 = walk, higher leans to jog/run).")]
+    public float maxSpeed = 2.5f;
+
+    [Tooltip("Clip playback speed (MotionSpeed) when BARELY moving — floor so the legs never play in " +
+             "slow-motion. 1 = normal clip speed.")]
+    public float motionSpeedMin = 1.0f;
+
+    [Tooltip("Clip playback speed at full movement — >1 makes the stride faster / more aggressive.")]
+    public float motionSpeedMax = 1.6f;
+
+    [Tooltip("Physical speed (m/s) below this counts as standing still (snaps to idle).")]
+    public float deadzone = 0.1f;
+
+    [Tooltip("Speeds above this (m/s) are treated as a recenter/teleport glitch and ignored.")]
+    public float glitchSpeed = 6.0f;
 
     [Tooltip("Smoothing time for the speed value (seconds).")]
     public float damp = 0.12f;
 
-    [Tooltip("Legacy/optional; not used to derive speed (kept so existing scene wiring stays valid).")]
+    [Tooltip("Legacy/optional; kept so existing scene wiring stays valid.")]
+    public string moveBinding = "<XRController>{LeftHand}/thumbstick";
+    [Tooltip("Legacy/optional; kept so existing scene wiring stays valid.")]
     public CharacterController source;
 
-    InputAction moveAction;
     int speedHash, motionHash;
     float speed;
+    Vector3 lastHmdPos;
+    bool hasLast;
 
     // Pure, testable: horizontal magnitude of a velocity (retained for assertions / external callers).
     public static float HorizontalSpeed(Vector3 velocity)
@@ -51,23 +67,39 @@ public class LocomotionAnimatorDriver : MonoBehaviour
     void Awake()
     {
         if (animator == null) animator = GetComponentInChildren<Animator>();
+        if (hmd == null && Camera.main != null) hmd = Camera.main.transform;
         speedHash = Animator.StringToHash(speedParameter);
         motionHash = Animator.StringToHash(motionSpeedParameter);
-        moveAction = new InputAction("Move", InputActionType.Value, moveBinding, expectedControlType: "Vector2");
     }
-
-    void OnEnable() { moveAction?.Enable(); }
-    void OnDisable() { moveAction?.Disable(); }
 
     void Update()
     {
         if (animator == null) return;
-        float mag = moveAction != null ? Mathf.Clamp01(moveAction.ReadValue<Vector2>().magnitude) : 0f;
-        if (mag < deadzone) mag = 0f;
+        if (hmd == null && Camera.main != null) hmd = Camera.main.transform;
 
+        float dt = Time.deltaTime;
+        float physSpeed = 0f;
+        if (hmd != null && dt > 0f)
+        {
+            Vector3 p = hmd.position;
+            if (hasLast)
+            {
+                Vector3 d = p - lastHmdPos; d.y = 0f;
+                physSpeed = d.magnitude / dt;
+            }
+            lastHmdPos = p;
+            hasLast = true;
+        }
+        if (physSpeed < deadzone || physSpeed > glitchSpeed) physSpeed = 0f;
+
+        float mag = walkSpeed > 0f ? Mathf.Clamp01(physSpeed / walkSpeed) : 0f;
         float target = mag * maxSpeed;
-        speed = Mathf.Lerp(speed, target, damp > 0f ? Time.deltaTime / damp : 1f);
+        speed = Mathf.Lerp(speed, target, damp > 0f ? dt / damp : 1f);
         animator.SetFloat(speedHash, speed);
-        animator.SetFloat(motionHash, mag);   // 0 when idle -> walk clip freezes to idle pose
+
+        // MotionSpeed gates clip playback: 0 freezes to idle, but when moving keep it at full speed
+        // (>= motionSpeedMin) so even gentle movement produces a proper, non-slow-motion stride.
+        float motion = mag > 0f ? Mathf.Lerp(motionSpeedMin, motionSpeedMax, mag) : 0f;
+        animator.SetFloat(motionHash, motion);
     }
 }
