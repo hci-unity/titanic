@@ -78,6 +78,23 @@ public class HandTrackingPoseSource : MonoBehaviour, IPoseSource
         return tracked;
     }
 
+    // Public read-only accessor: world-space pose of ANY hand joint, for the finger driver.
+    // Returns false if the subsystem is missing or that joint has no valid pose this frame.
+    // Same Camera-Offset -> world conversion the wrist uses.
+    public bool TryGetJointWorld(Handedness handedness, XRHandJointID id, out Pose worldPose)
+    {
+        worldPose = default;
+        if (subsystem == null) return false;
+        Transform space = trackingSpace != null ? trackingSpace : transform;
+        XRHand hand = handedness == Handedness.Left ? subsystem.leftHand : subsystem.rightHand;
+        if (hand.GetJoint(id).TryGetPose(out Pose p))
+        {
+            worldPose = new Pose(space.TransformPoint(p.position), space.rotation * p.rotation);
+            return true;
+        }
+        return false;
+    }
+
     public void UpdateTargets(Transform headTarget, Transform leftHandTarget, Transform rightHandTarget)
     {
         if (hmd != null) headTarget.SetPositionAndRotation(hmd.position, hmd.rotation);
