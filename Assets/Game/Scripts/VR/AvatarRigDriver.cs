@@ -50,6 +50,12 @@ public class AvatarRigDriver : MonoBehaviour
     [Tooltip("Move the avatar root to stand under the HMD (keeps body beneath the head).")]
     public bool followHmdHorizontal = true;
 
+    [Tooltip("Shift the body backward (m) along its own facing from the HMD ground point. The HMD is " +
+             "at the eyes but the chest sits behind the eyes, so a small back-offset (~0.1m) keeps the " +
+             "chest from reading too far forward in first-person self-view. Also nudges the mirror " +
+             "avatar by the same small amount.")]
+    public float bodyBackOffset = 0f;
+
     [Header("Hand reach (head-relative mapping)")]
     [Tooltip("Place hand IK goals relative to the AVATAR's head instead of absolute world space, so a " +
              "shorter/differently-proportioned avatar reaches naturally. Applies to both controllers and hand tracking.")]
@@ -176,7 +182,13 @@ public class AvatarRigDriver : MonoBehaviour
         if (followHmdHorizontal)
         {
             Vector3 hp = headTarget.position;
-            transform.position = new Vector3(hp.x, transform.position.y, hp.z);
+            Vector3 p = new Vector3(hp.x, transform.position.y, hp.z);
+            if (bodyBackOffset != 0f)
+            {
+                Vector3 f = transform.forward; f.y = 0f;
+                if (f.sqrMagnitude > 1e-6f) p -= f.normalized * bodyBackOffset; // shift back along body facing
+            }
+            transform.position = p;
         }
 
         if (followYaw)

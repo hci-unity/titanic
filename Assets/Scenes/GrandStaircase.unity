@@ -1351,7 +1351,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7789723442411247624, guid: 3243e7055e5d54647899a0566f9cf2f3, type: 3}
       propertyPath: reflectLayers.m_Bits
-      value: 4294966783
+      value: 4294965759
       objectReference: {fileID: 0}
     - target: {fileID: 8546859327749286321, guid: 3243e7055e5d54647899a0566f9cf2f3, type: 3}
       propertyPath: m_LocalScale.x
@@ -1939,6 +1939,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 9
       objectReference: {fileID: 0}
+    - target: {fileID: 5895826684305351068, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6038107472648090404, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Layer
       value: 9
@@ -2018,6 +2022,10 @@ PrefabInstance:
     - target: {fileID: 9173983156334026967, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
       propertyPath: m_Layer
       value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 9173983156334026967, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7347985736721345035, guid: f6336ac4ac8b4d34bc5072418cdc62a0, type: 3}
@@ -2335,6 +2343,7 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 42.47, y: 2.75, z: 1.01}
   followHmdHorizontal: 1
+  bodyBackOffset: 0.18
   headRelativeHands: 1
   autoReach: 1
   reachScale: 1.25
@@ -2411,6 +2420,7 @@ GameObject:
   - component: {fileID: 828887437}
   - component: {fileID: 828887438}
   - component: {fileID: 828887439}
+  - component: {fileID: 828887440}
   m_Layer: 0
   m_Name: MirrorAvatars
   m_TagString: Untagged
@@ -2472,6 +2482,26 @@ MonoBehaviour:
   - {fileID: 796977876}
   - {fileID: 1475995313}
   nextBinding: <XRController>{RightHand}/primaryButton
+--- !u!114 &828887440
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 828887436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8048d246faad1ac488b17c8a9386b70a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SelfViewManager
+  selfViewEnabled: 1
+  switcher: {fileID: 828887439}
+  firstPersonLayer: 10
+  headVertexThreshold: 0.5
+  castShadows: 0
+  controllerVisualNames:
+  - Left Controller Visual
+  - Right Controller Visual
 --- !u!64 &833767029
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -4554,6 +4584,7 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 9.19, y: 355.44, z: 358.9}
   followHmdHorizontal: 1
+  bodyBackOffset: 0.18
   headRelativeHands: 1
   autoReach: 1
   reachScale: 1
@@ -8027,6 +8058,7 @@ MonoBehaviour:
   driveHead: 1
   headOffsetEuler: {x: 0, y: 0, z: 0}
   followHmdHorizontal: 1
+  bodyBackOffset: 0.18
   headRelativeHands: 1
   autoReach: 1
   reachScale: 1
