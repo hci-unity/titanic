@@ -85,3 +85,6 @@ Desktop.ini
 # The Build folder contains the output of the build process
 Build/
 Build.zip
+
+# Local-only Jack/Meshy build scratch (intermediate pipeline artifacts)
+JackStuff/
