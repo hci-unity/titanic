@@ -1,0 +1,17 @@
+[mcp_servers.blender-mcp]
+command = "uvx"
+args = ["blender-mcp"]
+
+[mcp_servers.meshy-mcp]
+command = "npx"
+args = [
+    "-y",
+    "@meshy-ai/meshy-mcp-server",
+]
+
+[mcp_servers.meshy-mcp.env]
+MESHY_API_KEY = "msy_AcRO4ECDa8jxw9fF3xftMorIdSoLm4upWEHQ"
+
+[mcp_servers.unity-mcp]
+command = "C:/Users/Eyal/.unity/relay/relay_win.exe"
+args = ["--mcp"]
