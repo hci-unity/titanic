@@ -21,7 +21,10 @@ public class Flooding : MonoBehaviour
     [Header("Underwater")]
     public Color underwaterColor = new(0.01f, 0.035f, 0.045f);
     public float underwaterFogDensity = 0.35f;
-    public float muffleCutoffHz = 700f;
+    public float muffleCutoffHz = 1200f;
+    [Tooltip("Played louder underwater, since the muffle takes a lot of its energy away (the waves).")]
+    public AudioSource loudUnderwater;
+    public float underwaterVolumeBoost = 2f;
     [Tooltip("Switch to underwater this far before the surface reaches the eyes (the view starts filling with water first).")]
     public float surfaceMargin = 0.2f;
 
@@ -102,6 +105,7 @@ public class Flooding : MonoBehaviour
         Shader.SetGlobalFloat(UnderwaterId, 1f);
         var muffle = cam.gameObject.AddComponent<AudioLowPassFilter>(); // the listener lives on the camera
         muffle.cutoffFrequency = muffleCutoffHz;
+        if (loudUnderwater) loudUnderwater.volume = Mathf.Min(1f, loudUnderwater.volume * underwaterVolumeBoost);
     }
 
     // Globals outlive Play mode in the editor.
