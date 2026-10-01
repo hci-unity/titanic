@@ -8,13 +8,14 @@ using UnityEngine;
 public class IcebergDrift : MonoBehaviour
 {
     [Tooltip("Far out, almost dead ahead (visible through the front windows the whole way in).")]
-    public Vector3 startLocal = new(24f, 0f, -160f);
-    [Tooltip("Where it is at the impact: just off the starboard (right) windows.")]
-    public Vector3 impactLocal = new(19f, 0f, -4f);
-    public Vector3 endLocal = new(21f, 0f, 30f);
+    public Vector3 startLocal = new(18.41f, 0f, -171.51f);
+    [Tooltip("At the impact: its front tip touches the bow corner, ~0.8 m off the hull (measured on the mesh).")]
+    public Vector3 impactLocal = new(18.41f, 0f, -31.51f);
+    [Tooltip("Its tail has passed the stern end of the room.")]
+    public Vector3 endLocal = new(18.41f, 0f, 34.12f);
     [Tooltip("Seconds from the start to reach the ship (match SinkingSequence.calmDuration).")]
     public float approachTime = 25f;
-    public float scrapeTime = 25f;
+    public float scrapeTime = 30f;
 
     [Header("Windows it smashes on the way past")]
     [Tooltip("Glass panes on the iceberg's side. Each bursts when the iceberg's leading edge reaches it.")]

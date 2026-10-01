@@ -52,6 +52,8 @@ public class SinkingSequence : MonoBehaviour
 
     [Tooltip("Fires at the moment of impact.")]
     public UnityEvent onCrash;
+    [Tooltip("Fires when everything has faded to black (the closing title hooks in here).")]
+    public UnityEvent onDarkness;
 
     readonly List<(Light light, float intensity)> lights = new();
     readonly List<(Material mat, Color emission)> glows = new();
@@ -157,6 +159,7 @@ public class SinkingSequence : MonoBehaviour
         }
         level = night = 0f;
         Debug.Log("SinkingSequence: reached total darkness.");
+        onDarkness.Invoke();
     }
 
     void DropLamps()
