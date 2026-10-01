@@ -13,8 +13,8 @@ using UnityEngine;
 //   - Body: the avatar root follows the HMD horizontally so the body stands under the head
 //     (legs/torso stay in the idle pose).
 //
-// The IPoseSource seam is unchanged, so a mocap-driven source can replace ThreePointIKPoseSource
-// later without touching this driver.
+// Pose comes through the IPoseSource seam (in the scene: InputModeRouter, which picks controllers
+// or hand tracking), so a mocap-driven source can drop in later without touching this driver.
 [DisallowMultipleComponent]
 public class AvatarRigDriver : MonoBehaviour
 {

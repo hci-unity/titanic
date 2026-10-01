@@ -30,10 +30,10 @@ public static class SingleCharacterBuilder
     };
 
     [MenuItem("Build/Single Character/Rose Only")]
-    public static void BuildRose() => BuildVariant("RoseV2", "Builds/Rose/Titanic-Rose.exe");
+    public static void BuildRose() => BuildVariant(Variants[0].avatar, Variants[0].output);
 
     [MenuItem("Build/Single Character/Jack Only")]
-    public static void BuildJack() => BuildVariant("JackV2", "Builds/Jack/Titanic-Jack.exe");
+    public static void BuildJack() => BuildVariant(Variants[1].avatar, Variants[1].output);
 
     [MenuItem("Build/Single Character/Both (Rose + Jack)")]
     public static void BuildBoth()
@@ -60,52 +60,50 @@ public static class SingleCharacterBuilder
         if (!AssetDatabase.CopyAsset(SourceScene, tempPath))
             return $"FAILED {avatarName}: could not copy {SourceScene} -> {tempPath}";
 
-        Scene scene = EditorSceneManager.OpenScene(tempPath, OpenSceneMode.Single);
-
-        var switcher = Object.FindFirstObjectByType<MirrorCharacterSwitcher>(FindObjectsInactive.Include);
-        if (switcher == null)
+        BuildReport report;
+        try
         {
-            CleanupTemp(tempPath);
-            return $"FAILED {avatarName}: no MirrorCharacterSwitcher in scene";
+            Scene scene = EditorSceneManager.OpenScene(tempPath, OpenSceneMode.Single);
+
+            var switcher = Object.FindAnyObjectByType<MirrorCharacterSwitcher>(FindObjectsInactive.Include);
+            if (switcher == null)
+                return $"FAILED {avatarName}: no MirrorCharacterSwitcher in scene";
+
+            // All sibling avatars live as children of the MirrorAvatars object (where the switcher
+            // sits) and each carries an AvatarRigDriver. Find them so we can deactivate the others.
+            var avatarRoots = switcher.GetComponentsInChildren<AvatarRigDriver>(true)
+                                      .Select(d => d.gameObject)
+                                      .Distinct()
+                                      .ToList();
+
+            GameObject target = avatarRoots.FirstOrDefault(g => g.name == avatarName);
+            if (target == null)
+                return $"FAILED {avatarName}: avatar not found among [{string.Join(", ", avatarRoots.Select(g => g.name))}]";
+
+            // Lock to the single character: only this one in the switcher list, only this one active.
+            switcher.characters = new List<GameObject> { target };
+            foreach (var g in avatarRoots)
+                g.SetActive(g == target);
+
+            EditorUtility.SetDirty(switcher);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+
+            report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = new[] { tempPath },
+                locationPathName = outputExe,
+                target = Target,
+                options = BuildOptions.None,
+            });
         }
-
-        // All sibling avatars live as children of the MirrorAvatars object (where the switcher
-        // sits) and each carries an AvatarRigDriver. Find them so we can deactivate the others.
-        var avatarRoots = switcher.GetComponentsInChildren<AvatarRigDriver>(true)
-                                  .Select(d => d.gameObject)
-                                  .Distinct()
-                                  .ToList();
-
-        GameObject target = avatarRoots.FirstOrDefault(g => g.name == avatarName);
-        if (target == null)
+        finally
         {
-            string have = string.Join(", ", avatarRoots.Select(g => g.name));
+            // Always restore the real dev scene (both characters + A-button cycle) and remove the
+            // temp copy, even if a step above failed or threw.
+            EditorSceneManager.OpenScene(SourceScene, OpenSceneMode.Single);
             CleanupTemp(tempPath);
-            return $"FAILED {avatarName}: avatar not found among [{have}]";
         }
-
-        // Lock to the single character: only this one in the switcher list, only this one active.
-        switcher.characters = new List<GameObject> { target };
-        foreach (var g in avatarRoots)
-            g.SetActive(g == target);
-
-        EditorUtility.SetDirty(switcher);
-        EditorSceneManager.MarkSceneDirty(scene);
-        EditorSceneManager.SaveScene(scene);
-
-        var options = new BuildPlayerOptions
-        {
-            scenes = new[] { tempPath },
-            locationPathName = outputExe,
-            target = Target,
-            options = BuildOptions.None,
-        };
-
-        BuildReport report = BuildPipeline.BuildPlayer(options);
-
-        // Restore the real dev scene (both characters + A-button cycle) and remove the temp copy.
-        EditorSceneManager.OpenScene(SourceScene, OpenSceneMode.Single);
-        CleanupTemp(tempPath);
 
         var s = report.summary;
         string line = $"{avatarName}: {s.result}  errors={s.totalErrors}  " +

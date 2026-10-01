@@ -4,8 +4,8 @@ using UnityEngine.InputSystem;
 
 // Enables exactly one mirror-avatar character at a time and cycles on a controller button.
 // Each entry in `characters` is a layer-8 Humanoid avatar root with its own AvatarRigDriver,
-// pre-wired (in the scene) to the shared ThreePointIKPoseSource. Adding a character = add its
-// root to `characters` in the inspector. No other code changes needed.
+// pre-wired (in the scene) to the shared InputModeRouter. Adding a character = add its root to
+// `characters` in the inspector (SelfViewManager follows the switch automatically).
 [DisallowMultipleComponent]
 public class MirrorCharacterSwitcher : MonoBehaviour
 {

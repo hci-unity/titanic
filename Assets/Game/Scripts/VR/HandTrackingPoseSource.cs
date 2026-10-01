@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.Hands;
@@ -8,8 +7,8 @@ using UnityEngine.XR.Hands;
 // constant calibrated offset that maps the OpenXR wrist convention onto the same convention the Touch
 // controller grip produces -- so AvatarRigDriver's per-character offsets keep working unchanged.
 //
-// Also the single owner of "the player's tracked hands": exposes tracked state + index-fingertip world
-// positions for the poke UI and the router, so nothing else has to read the XR Hands subsystem.
+// Also the single owner of "the player's tracked hands": exposes per-hand tracked state + any joint's
+// world pose (TryGetJointWorld, for FingerPoseDriver), so nothing else has to read the XR Hands subsystem.
 //
 // Tracking note (Air Link): the high-level XRHand.isTracked flag is NOT reliable over Air Link while
 // the controllers are still awake -- the runtime delivers valid joint poses but leaves isTracked false.
@@ -35,12 +34,9 @@ public class HandTrackingPoseSource : MonoBehaviour, IPoseSource
     XRHandSubsystem subsystem;
     readonly List<XRHandSubsystem> buffer = new();
 
-    // Exposed for InputModeRouter + PokeButton (single XR Hands reader).
+    // Per-hand "wrist pose valid this frame" (read by FingerPoseDriver).
     public bool LeftTracked { get; private set; }
     public bool RightTracked { get; private set; }
-    public bool AnyHandTracked => LeftTracked || RightTracked;
-    public Vector3 LeftIndexTip { get; private set; }
-    public Vector3 RightIndexTip { get; private set; }
 
     // Latest wrist poses in world space (valid only when the matching *Tracked flag is true).
     Pose leftWristWorld, rightWristWorld;
@@ -52,8 +48,8 @@ public class HandTrackingPoseSource : MonoBehaviour, IPoseSource
         EnsureSubsystem();
         if (subsystem == null) { LeftTracked = RightTracked = false; return; }
         Transform space = trackingSpace != null ? trackingSpace : transform;
-        LeftTracked = ReadHand(subsystem.leftHand, space, ref leftWristWorld, v => LeftIndexTip = v);
-        RightTracked = ReadHand(subsystem.rightHand, space, ref rightWristWorld, v => RightIndexTip = v);
+        LeftTracked = ReadWrist(subsystem.leftHand, space, ref leftWristWorld);
+        RightTracked = ReadWrist(subsystem.rightHand, space, ref rightWristWorld);
     }
 
     void EnsureSubsystem()
@@ -64,18 +60,12 @@ public class HandTrackingPoseSource : MonoBehaviour, IPoseSource
         foreach (var s in buffer) if (s.running) { subsystem = s; break; }
     }
 
-    // Reads the wrist (world pose) + index tip for one hand. Returns whether the wrist pose is valid.
-    bool ReadHand(XRHand hand, Transform space, ref Pose wristWorld, Action<Vector3> setIndexTip)
+    // Reads one hand's wrist world pose. Returns whether it is valid this frame.
+    static bool ReadWrist(XRHand hand, Transform space, ref Pose wristWorld)
     {
-        bool tracked = false;
-        if (hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out Pose wrist))
-        {
-            wristWorld = new Pose(space.TransformPoint(wrist.position), space.rotation * wrist.rotation);
-            tracked = true;
-        }
-        if (hand.GetJoint(XRHandJointID.IndexTip).TryGetPose(out Pose tip))
-            setIndexTip(space.TransformPoint(tip.position));
-        return tracked;
+        if (!hand.GetJoint(XRHandJointID.Wrist).TryGetPose(out Pose wrist)) return false;
+        wristWorld = new Pose(space.TransformPoint(wrist.position), space.rotation * wrist.rotation);
+        return true;
     }
 
     // Public read-only accessor: world-space pose of ANY hand joint, for the finger driver.

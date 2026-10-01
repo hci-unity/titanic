@@ -30,13 +30,14 @@ public class MirrorReflection : MonoBehaviour
     [Tooltip("Push the clip plane forward of the mirror to avoid self-reflection / z-fighting.")]
     public float clipPlaneOffset = 0.01f;
 
-    [Tooltip("Oblique near-clip at the mirror plane. Suspected to break URP shadow cascades at off-center head angles; toggle to test.")]
+    [Tooltip("Oblique near-clip at the mirror plane (keep ON). Culling uses the undistorted frustum, so shadows stay correct.")]
     public bool obliqueClip = true;
 
     Camera reflectionCamera;
     RenderTexture rtLeft, rtRight;
     MeshRenderer cachedRenderer;
     Renderer[] mirrorOwnRenderers;
+    bool[] mirrorOwnStates; // reused every render (no per-frame allocation)
     Material runtimeMirrorMaterial;
     bool insideRendering;
 
@@ -48,6 +49,7 @@ public class MirrorReflection : MonoBehaviour
         cachedRenderer = GetComponent<MeshRenderer>();
         var root = transform.root != null ? transform.root : transform;
         mirrorOwnRenderers = root.GetComponentsInChildren<Renderer>(true);
+        mirrorOwnStates = new bool[mirrorOwnRenderers.Length];
         BuildRuntimeMaterial();
         RenderPipelineManager.beginCameraRendering += OnBeginCameraRendering;
     }
@@ -90,7 +92,7 @@ public class MirrorReflection : MonoBehaviour
         EnsureResources(cam);
 
         // Hide the mirror's own prop meshes so the reflection doesn't include the mirror's back.
-        var states = new bool[mirrorOwnRenderers.Length];
+        var states = mirrorOwnStates;
         for (int i = 0; i < mirrorOwnRenderers.Length; i++)
         {
             var r = mirrorOwnRenderers[i]; if (r == null) continue;
@@ -228,10 +230,13 @@ public class MirrorReflection : MonoBehaviour
 
     void EnsureRT(ref RenderTexture rt, string rtName, int w, int h)
     {
-        if (rt != null && (rt.width != w || rt.height != h)) { rt.Release(); DestroyImmediate(rt); rt = null; }
+        // Match the pipeline's MSAA so the reflection is as smooth as the world around it.
+        var urp = UniversalRenderPipeline.asset;
+        int aa = urp != null ? Mathf.Max(1, urp.msaaSampleCount) : 1;
+        if (rt != null && (rt.width != w || rt.height != h || rt.antiAliasing != aa)) { rt.Release(); DestroyImmediate(rt); rt = null; }
         if (rt == null)
         {
-            rt = new RenderTexture(w, h, 16) { name = rtName, antiAliasing = 1, hideFlags = HideFlags.DontSave };
+            rt = new RenderTexture(w, h, 16) { name = rtName, antiAliasing = aa, hideFlags = HideFlags.DontSave };
             rt.Create();
         }
     }

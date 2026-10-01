@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.XR.Interaction.Toolkit.Inputs;
 
@@ -20,7 +19,6 @@ public class InputModeRouter : MonoBehaviour, IPoseSource
     public HandTrackingPoseSource handSource;
 
     public InputMode CurrentMode { get; private set; } = InputMode.Controllers;
-    public event Action<InputMode> ModeChanged;
 
     IPoseSource controllerSource;
 
@@ -42,11 +40,7 @@ public class InputModeRouter : MonoBehaviour, IPoseSource
         (controllerSource != null && controllerSource.IsActive) ||
         (handSource != null && handSource.IsActive);
 
-    void Update()
-    {
-        var next = MapModality(XRInputModalityManager.currentInputMode.Value, CurrentMode);
-        if (next != CurrentMode) { CurrentMode = next; ModeChanged?.Invoke(next); }
-    }
+    void Update() => CurrentMode = MapModality(XRInputModalityManager.currentInputMode.Value, CurrentMode);
 
     public void UpdateTargets(Transform headTarget, Transform leftHandTarget, Transform rightHandTarget)
     {

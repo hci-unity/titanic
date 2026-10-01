@@ -65,7 +65,8 @@ public class SelfViewManager : MonoBehaviour
             return;
         }
 
-        if (switcher.CurrentIndex != builtIndex || fpBodyGO == null) Rebuild();
+        // Once per character switch (Teardown resets builtIndex); a failed build is not retried every frame.
+        if (switcher.CurrentIndex != builtIndex) Rebuild();
     }
 
     void Rebuild()
@@ -115,6 +116,13 @@ public class SelfViewManager : MonoBehaviour
         var mesh = src.sharedMesh;
         var bones = src.bones;
         if (bones == null || bones.Length == 0) return null;
+        if (!mesh.isReadable)
+        {
+            // SetTriangles on a non-readable mesh silently no-ops -> the head would show in first person.
+            Debug.LogError($"SelfViewManager: mesh '{mesh.name}' is not Read/Write enabled. Enable Read/Write " +
+                           "on the character's FBX import settings, or the head shows in first-person view.");
+            return null;
+        }
 
         // Head bone set = the head bone plus any bone that is its transform-descendant (eyes, jaw, hair).
         var headBones = new HashSet<int>();
@@ -161,7 +169,7 @@ public class SelfViewManager : MonoBehaviour
         {
             hiddenControllerVisuals.Clear();
             if (controllerVisualNames == null) return;
-            var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+            var all = Object.FindObjectsByType<Transform>(FindObjectsInactive.Include);
             foreach (var t in all)
             {
                 if (t == null) continue;

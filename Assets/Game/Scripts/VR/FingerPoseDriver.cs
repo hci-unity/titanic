@@ -97,7 +97,9 @@ public class FingerPoseDriver : MonoBehaviour
     Animator animator;
     FingerBoneSpec[] leftSpecs, rightSpecs;
     Transform[] lAim, lFrom, lTo, rAim, rFrom, rTo;   // cached bone transforms, parallel to specs
-    Quaternion[] lPrev, rPrev;                        // last applied world rotations (for smoothing + freeze)
+    // Last applied world rotations (for smoothing + freeze); null = none yet. Nullable because
+    // Quaternion's == is dot-based, so default(Quaternion) never compares equal to itself.
+    Quaternion?[] lPrev, rPrev;
 
     void Awake()
     {
@@ -109,12 +111,12 @@ public class FingerPoseDriver : MonoBehaviour
         Cache(rightSpecs, out rAim, out rFrom, out rTo, out rPrev);
     }
 
-    void Cache(FingerBoneSpec[] specs, out Transform[] aim, out Transform[] from, out Transform[] to, out Quaternion[] prev)
+    void Cache(FingerBoneSpec[] specs, out Transform[] aim, out Transform[] from, out Transform[] to, out Quaternion?[] prev)
     {
         aim = new Transform[specs.Length];
         from = new Transform[specs.Length];
         to = new Transform[specs.Length];
-        prev = new Quaternion[specs.Length];   // default(Quaternion) == (0,0,0,0) -> treated as "no prev"
+        prev = new Quaternion?[specs.Length];
         for (int i = 0; i < specs.Length; i++)
         {
             aim[i]  = animator.GetBoneTransform(specs[i].Aim);
@@ -131,21 +133,22 @@ public class FingerPoseDriver : MonoBehaviour
     }
 
     void DriveHand(Handedness h, bool tracked, FingerBoneSpec[] specs,
-                   Transform[] aim, Transform[] from, Transform[] to, Quaternion[] prev)
+                   Transform[] aim, Transform[] from, Transform[] to, Quaternion?[] prev)
     {
         // Controller mode -> leave fingers in the idle animation pose; clear prev so we don't
         // snap from a stale tracked pose when hands resume.
         if (router.CurrentMode != InputModeRouter.InputMode.Hands)
         {
-            for (int i = 0; i < prev.Length; i++) prev[i] = default;
+            for (int i = 0; i < prev.Length; i++) prev[i] = null;
             return;
         }
 
-        // Hands mode but this hand dropped out -> freeze the last good pose by re-applying it.
+        // Hands mode but this hand dropped out -> freeze the last good pose by re-applying it
+        // (no pose yet -> leave the idle animation pose).
         if (!ShouldDrive(router.CurrentMode, tracked))
         {
             for (int i = 0; i < specs.Length; i++)
-                if (aim[i] != null && prev[i] != default) aim[i].rotation = prev[i];
+                if (aim[i] != null && prev[i].HasValue) aim[i].rotation = prev[i].Value;
             return;
         }
 
@@ -161,8 +164,8 @@ public class FingerPoseDriver : MonoBehaviour
             Vector3 targetDir  = pt.position - pf.position;
             Quaternion aimed   = Aim(currentDir, targetDir, aim[i].rotation);
             Quaternion target  = Quaternion.Slerp(aim[i].rotation, aimed, fingerWeight);
-            if (smoothing > 0f && prev[i] != default)
-                target = Quaternion.Slerp(prev[i], target, 1f - smoothing);
+            if (smoothing > 0f && prev[i].HasValue)
+                target = Quaternion.Slerp(prev[i].Value, target, 1f - smoothing);
 
             aim[i].rotation = target;
             prev[i] = target;

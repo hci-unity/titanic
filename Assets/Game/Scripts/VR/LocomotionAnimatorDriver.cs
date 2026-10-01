@@ -47,22 +47,10 @@ public class LocomotionAnimatorDriver : MonoBehaviour
     [Tooltip("Smoothing time for the speed value (seconds).")]
     public float damp = 0.12f;
 
-    [Tooltip("Legacy/optional; kept so existing scene wiring stays valid.")]
-    public string moveBinding = "<XRController>{LeftHand}/thumbstick";
-    [Tooltip("Legacy/optional; kept so existing scene wiring stays valid.")]
-    public CharacterController source;
-
     int speedHash, motionHash;
     float speed;
     Vector3 lastHmdPos;
     bool hasLast;
-
-    // Pure, testable: horizontal magnitude of a velocity (retained for assertions / external callers).
-    public static float HorizontalSpeed(Vector3 velocity)
-    {
-        velocity.y = 0f;
-        return velocity.magnitude;
-    }
 
     void Awake()
     {

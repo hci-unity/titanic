@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // Quits on a controller button (Y, controller mode) OR the keyboard Escape key (operator). In a build
-// this calls Application.Quit(); in the editor it stops Play mode. The poke panel's Exit button also
-// calls Quit() (hands mode).
+// this calls Application.Quit(); in the editor it stops Play mode. Hands mode has no in-experience
+// quit by design -- the operator uses Escape.
 [DisallowMultipleComponent]
 public class QuitOnButton : MonoBehaviour
 {
