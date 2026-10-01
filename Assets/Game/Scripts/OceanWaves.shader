@@ -2,6 +2,7 @@
 // light (the Moon) as diffuse + a sharp glint, with a distance haze that blends into the sky dome.
 // Waves are computed in OBJECT space, so the whole sea tilts/moves with its parent (ShipShake.keepLevel).
 // _SkyDarkness (global, set by SinkingSequence) fades the night sky light out at the end.
+// _WaveCalm (global, Flooding) shrinks the swells; back faces (seen from underwater) draw as the fog color.
 Shader "Custom/OceanWaves"
 {
     Properties
@@ -28,6 +29,7 @@ Shader "Custom/OceanWaves"
         {
             Name "OceanForward"
             Tags { "LightMode" = "UniversalForward" }
+            Cull Off // the surface must stay visible from below once the player is underwater
 
             HLSLPROGRAM
             #pragma vertex vert
@@ -43,6 +45,7 @@ Shader "Custom/OceanWaves"
                 float4 _WaveA, _WaveB, _WaveC, _WaveD;
             CBUFFER_END
             float _SkyDarkness; // global: 0 = normal night, 1 = black
+            float _WaveCalm;    // global: 0 = full swells, 1 = flat
 
             struct Attributes
             {
@@ -62,7 +65,7 @@ Shader "Custom/OceanWaves"
             // Gerstner wave (Catlike Coding formulation); accumulates the surface tangent frame.
             float3 Gerstner(float4 wave, float3 p, inout float3 tangent, inout float3 binormal)
             {
-                float steepness = wave.z;
+                float steepness = wave.z * (1 - _WaveCalm);
                 float k = TWO_PI / wave.w;
                 float c = sqrt(9.8 / k);
                 float2 d = normalize(wave.xy);
@@ -84,7 +87,7 @@ Shader "Custom/OceanWaves"
                 float3 tangent = float3(1, 0, 0), binormal = float3(0, 0, 1);
                 float3 offset = Gerstner(_WaveA, p, tangent, binormal) + Gerstner(_WaveB, p, tangent, binormal)
                               + Gerstner(_WaveC, p, tangent, binormal) + Gerstner(_WaveD, p, tangent, binormal);
-                float ampSum = _WaveA.z * _WaveA.w + _WaveB.z * _WaveB.w + _WaveC.z * _WaveC.w + _WaveD.z * _WaveD.w;
+                float ampSum = (_WaveA.z * _WaveA.w + _WaveB.z * _WaveB.w + _WaveC.z * _WaveC.w + _WaveD.z * _WaveD.w) * (1 - _WaveCalm);
                 p += offset;
 
                 OUT.positionWS = TransformObjectToWorld(p);
@@ -94,8 +97,10 @@ Shader "Custom/OceanWaves"
                 return OUT;
             }
 
-            half4 frag(Varyings IN) : SV_Target
+            half4 frag(Varyings IN, bool front : SV_IsFrontFace) : SV_Target
             {
+                if (!front) return half4(unity_FogColor.rgb * (1 - _SkyDarkness), 1); // underside, seen from underwater
+
                 float3 n = normalize(IN.normalWS);
                 float3 v = GetWorldSpaceNormalizeViewDir(IN.positionWS);
                 Light moon = GetMainLight();

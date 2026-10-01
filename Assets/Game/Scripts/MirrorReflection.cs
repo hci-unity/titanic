@@ -88,6 +88,9 @@ public class MirrorReflection : MonoBehaviour
         if (cam == reflectionCamera) return;            // don't reflect our own reflection camera
         if (cam.cameraType != CameraType.Game) return;  // skip scene view / preview cameras
         if (cachedRenderer == null || !cachedRenderer.enabled) return;
+        // Viewer behind (or on) the mirror plane: the reflective face can't be seen, and the oblique
+        // projection degenerates ("Screen position out of view frustum" from RenderSingleCamera).
+        if (Vector3.Dot(cam.transform.position - transform.position, transform.forward) <= clipPlaneOffset) return;
 
         EnsureResources(cam);
 

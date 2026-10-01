@@ -1,7 +1,8 @@
 // Night sky drawn on an inside-out sphere that lives under "Outside", so it stays level with the sea
 // while the ship tilts (a real skybox is camera-anchored and can't). Gradient + stars use the dome's
 // OBJECT-space direction; the moon disk follows the main light (the Moon, also kept level).
-// _SkyDarkness (global, set by SinkingSequence) fades it to black at the end.
+// _SkyDarkness (global, set by SinkingSequence) fades it to black at the end; _Underwater (global,
+// Flooding) swaps it for the murky fog color so nothing shows through the water.
 Shader "Custom/NightSkyDome"
 {
     Properties
@@ -38,6 +39,7 @@ Shader "Custom/NightSkyDome"
                 float _HorizonFalloff, _MoonSize, _MoonGlow, _StarDensity, _StarBrightness;
             CBUFFER_END
             float _SkyDarkness;
+            float _Underwater;
 
             struct Attributes
             {
@@ -83,6 +85,7 @@ Shader "Custom/NightSkyDome"
                 float m = dot(normalize(IN.dirWS), GetMainLight().direction);
                 col += _MoonColor.rgb * (smoothstep(_MoonSize - 0.00006, _MoonSize, m) + pow(saturate(m), 400) * _MoonGlow);
 
+                col = lerp(col, unity_FogColor.rgb, _Underwater);
                 return half4(col * (1 - _SkyDarkness), 1);
             }
             ENDHLSL

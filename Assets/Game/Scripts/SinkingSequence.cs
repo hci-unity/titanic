@@ -39,6 +39,8 @@ public class SinkingSequence : MonoBehaviour
     public Vector2 lampOffTime = new(0.05f, 0.3f);
     [Tooltip("Each lamp dies at a random point in this fraction of the sinking.")]
     public Vector2 lampDeathWindow = new(0.3f, 0.9f);
+    [Tooltip("Fraction of the sinking at which the moonlight starts fading (it stays up so the flood is visible).")]
+    [Range(0f, 1f)] public float moonFadeStart = 0.55f;
 
     [Header("Falling lamps (a random subset tears loose and shatters)")]
     public int fallingLampCount = 20;
@@ -143,8 +145,8 @@ public class SinkingSequence : MonoBehaviour
             float k = 1f - t / sink;
             // Occasional short brownouts (~one every 4s) as the power fails.
             if (Random.value < Time.deltaTime / 4f) dipUntil = Time.time + Random.Range(0.08f, 0.15f);
-            night = k * k;
-            level = night * (Time.time < dipUntil ? 0.3f : 1f);
+            night = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(moonFadeStart, 1f, 1f - k));
+            level = k * k * (Time.time < dipUntil ? 0.3f : 1f);
 
             if (!fadingOut && sink - t <= audioFadeOutAtEnd)
             {
