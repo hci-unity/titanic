@@ -6,7 +6,7 @@ using UnityEngine.Events;
 // The experience timeline: calm -> iceberg crash -> sinking into total darkness.
 // Waves play throughout (and keep going in the dark). At the crash: crash SFX, screams fade in, onCrash
 // fires (shake / falling lamps / mirror hook in there), each lamp flickers on its own and dies one by one.
-// The hellish track fades in while every light, the ambient light and glowing materials fade to black.
+// Meanwhile every light, the ambient light and glowing materials fade to black.
 [DisallowMultipleComponent]
 public class SinkingSequence : MonoBehaviour
 {
@@ -14,20 +14,17 @@ public class SinkingSequence : MonoBehaviour
     public float calmDuration = 25f;
     public float sinkDuration = 40f;
     public float flickerDuration = 3f;
-    [Tooltip("Calm music fades out over this long, starting when the crash clip starts.")]
+    [Tooltip("Calm music fades out over this long, reaching silence 1s before the impact.")]
     public float calmMusicFadeOut = 6.5f;
-    [Tooltip("Hell music fades in over this long, after the flicker.")]
-    public float musicCrossfade = 10f;
     public float screamsFadeIn = 4f;
     public float audioFadeOutAtEnd = 4f;
 
     [Header("Audio")]
     public AudioSource calmMusic;
-    public AudioSource hellMusic;
     public AudioSource waves;
     public AudioSource crash;
     [Tooltip("Seconds into the crash clip where the impact hits (the clip starts this early).")]
-    public float crashImpactTime = 7.5f;
+    public float crashImpactTime = 9f;
     public AudioSource screams;
 
     [Header("Darkness")]
@@ -43,6 +40,14 @@ public class SinkingSequence : MonoBehaviour
     [Tooltip("Each lamp dies at a random point in this fraction of the sinking.")]
     public Vector2 lampDeathWindow = new(0.3f, 0.9f);
 
+    [Header("Falling lamps (a random subset tears loose and shatters)")]
+    public int fallingLampCount = 20;
+    [Tooltip("Seconds after impact over which the lamps drop, one by one.")]
+    public Vector2 fallWindow = new(1f, 25f);
+    public AudioClip[] lampBreakClips;
+    public Material shardMaterial;
+    public ShipShake ship;
+
     [Tooltip("Fires at the moment of impact.")]
     public UnityEvent onCrash;
 
@@ -52,9 +57,12 @@ public class SinkingSequence : MonoBehaviour
     Material[] lampMats;
     Color[] lampEmission;
     float[] lampOn;
+    bool[] fallen;
     Color ambient;
     float reflections;
-    float level = 1f;
+    float level = 1f; // ship power: flickers, brownouts, fades
+    float night = 1f; // moon / sky / ambient: smooth fade only, never flickers
+    static readonly int SkyDarknessId = Shader.PropertyToID("_SkyDarkness");
 
     void Start()
     {
@@ -64,6 +72,7 @@ public class SinkingSequence : MonoBehaviour
         CloneGlowMaterials();
 
         lampOn = new float[lampLights.Length];
+        fallen = new bool[lampLights.Length];
         lampMats = new Material[lampLights.Length];
         lampEmission = new Color[lampLights.Length];
         for (int i = 0; i < lampLights.Length; i++)
@@ -100,12 +109,15 @@ public class SinkingSequence : MonoBehaviour
 
     IEnumerator Run()
     {
-        // Start the crash clip early so its build-up ends exactly on the impact.
+        // The crash clip starts early so its big hit lands exactly on the impact; the music is silent 1s before.
         float lead = crash && crash.clip ? Mathf.Min(crashImpactTime, calmDuration) : 0f;
-        yield return new WaitForSeconds(calmDuration - lead);
-        if (crash) crash.Play();
-        if (calmMusic) StartCoroutine(Fade(calmMusic, calmMusic.volume, 0f, calmMusicFadeOut));
-        yield return new WaitForSeconds(lead);
+        if (crash) StartCoroutine(After(calmDuration - lead, crash.Play));
+        if (calmMusic) StartCoroutine(After(calmDuration - 1f - calmMusicFadeOut,
+            () => StartCoroutine(Fade(calmMusic, calmMusic.volume, 0f, calmMusicFadeOut))));
+        yield return new WaitForSeconds(calmDuration);
+        // Land on the actual audio position, not the clock: a streamed clip can start a little late.
+        if (crash && crash.clip)
+            yield return new WaitUntil(() => !crash.isPlaying || crash.time >= crashImpactTime);
 
         if (screams) StartCoroutine(Fade(screams, 0f, screams.volume, screamsFadeIn, play: true));
         onCrash.Invoke();
@@ -113,6 +125,7 @@ public class SinkingSequence : MonoBehaviour
         float sink = Mathf.Max(0.01f, sinkDuration - flickerDuration);
         for (int i = 0; i < lampOn.Length; i++)
             StartCoroutine(FlickerLamp(i, flickerDuration + sink * Random.Range(lampDeathWindow.x, lampDeathWindow.y)));
+        DropLamps();
 
         // Main lights dip (not black) while the lamps do the hard flickering.
         for (float end = Time.time + flickerDuration; Time.time < end;)
@@ -123,8 +136,6 @@ public class SinkingSequence : MonoBehaviour
             yield return new WaitForSeconds(Random.Range(0.15f, 0.4f));
         }
 
-        if (hellMusic) StartCoroutine(Fade(hellMusic, 0f, hellMusic.volume, musicCrossfade, play: true));
-
         bool fadingOut = false;
         float dipUntil = 0f;
         for (float t = 0; t < sink; t += Time.deltaTime)
@@ -132,18 +143,35 @@ public class SinkingSequence : MonoBehaviour
             float k = 1f - t / sink;
             // Occasional short brownouts (~one every 4s) as the power fails.
             if (Random.value < Time.deltaTime / 4f) dipUntil = Time.time + Random.Range(0.08f, 0.15f);
-            level = k * k * (Time.time < dipUntil ? 0.3f : 1f);
+            night = k * k;
+            level = night * (Time.time < dipUntil ? 0.3f : 1f);
 
             if (!fadingOut && sink - t <= audioFadeOutAtEnd)
             {
                 fadingOut = true;
-                foreach (var a in new[] { hellMusic, screams }) // waves keep going in the dark
-                    if (a) StartCoroutine(Fade(a, a.volume, 0f, audioFadeOutAtEnd));
+                if (screams) StartCoroutine(Fade(screams, screams.volume, 0f, audioFadeOutAtEnd)); // waves keep going
             }
             yield return null;
         }
-        level = 0f;
+        level = night = 0f;
         Debug.Log("SinkingSequence: reached total darkness.");
+    }
+
+    void DropLamps()
+    {
+        var order = new List<int>();
+        for (int i = 0; i < lampRenderers.Length; i++) if (lampRenderers[i]) order.Add(i);
+        for (int n = 0; n < fallingLampCount && order.Count > 0; n++)
+        {
+            int pick = Random.Range(0, order.Count), i = order[pick];
+            order.RemoveAt(pick);
+            var lamp = lampRenderers[i].gameObject.AddComponent<FallingLamp>();
+            lamp.breakClips = lampBreakClips;
+            lamp.shardMaterial = shardMaterial;
+            lamp.ship = ship;
+            lamp.onDetach = () => fallen[i] = true;
+            lamp.Drop(Random.Range(fallWindow.x, fallWindow.y));
+        }
     }
 
     IEnumerator FlickerLamp(int i, float lifetime)
@@ -162,13 +190,26 @@ public class SinkingSequence : MonoBehaviour
     void LateUpdate()
     {
         foreach (var (l, i) in lights)
-            if (l) l.intensity = i * level * (lampIndex.TryGetValue(l, out int j) ? lampOn[j] : 1f);
+            if (l) l.intensity = l.type == LightType.Directional ? i * night
+                               : i * level * (lampIndex.TryGetValue(l, out int j) ? LampOn(j) : 1f);
         foreach (var (m, e) in glows) m.SetColor("_EmissionColor", e * level);
         for (int j = 0; j < lampMats.Length; j++)
-            if (lampMats[j]) lampMats[j].SetColor("_EmissionColor", lampEmission[j] * level * lampOn[j]);
-        RenderSettings.ambientLight = ambient * level;
-        RenderSettings.reflectionIntensity = reflections * level;
+            if (lampMats[j]) lampMats[j].SetColor("_EmissionColor", lampEmission[j] * level * LampOn(j));
+        RenderSettings.ambientLight = ambient * night;
+        RenderSettings.reflectionIntensity = reflections * night;
+        Shader.SetGlobalFloat(SkyDarknessId, 1f - night);
     }
+
+    // Globals outlive Play mode in the editor; don't leave the sky black afterwards.
+    void OnDestroy() => Shader.SetGlobalFloat(SkyDarknessId, 0f);
+
+    static IEnumerator After(float seconds, System.Action action)
+    {
+        yield return new WaitForSeconds(Mathf.Max(0f, seconds));
+        action();
+    }
+
+    float LampOn(int i) => fallen[i] ? 0f : lampOn[i];
 
     static IEnumerator Fade(AudioSource a, float from, float to, float duration, bool play = false)
     {
