@@ -11,6 +11,7 @@ Shader "Custom/Iceberg"
         _HorizonColor ("Haze Color (match sky horizon)", Color) = (0.045, 0.06, 0.09, 1)
         _FogStart ("Haze Start (m)", Float) = 50
         _FogEnd ("Haze End (m)", Float) = 160
+        _Fade ("Fade In (0 = lost in the haze)", Range(0, 1)) = 1
     }
     SubShader
     {
@@ -32,7 +33,7 @@ Shader "Custom/Iceberg"
 
             CBUFFER_START(UnityPerMaterial)
                 half4 _Color, _AmbientColor, _HorizonColor;
-                float _Glow, _FogStart, _FogEnd;
+                float _Glow, _FogStart, _FogEnd, _Fade;
             CBUFFER_END
             float _SkyDarkness;
 
@@ -77,6 +78,7 @@ Shader "Custom/Iceberg"
                            + _Color.rgb * rim * 0.08 * lit;
 
                 float haze = saturate((distance(IN.positionWS, _WorldSpaceCameraPos) - _FogStart) / (_FogEnd - _FogStart));
+                haze = max(haze, 1 - _Fade); // per-iceberg fade (set by script) so it emerges from the haze instead of popping
                 col = lerp(col, _HorizonColor.rgb * lit, haze);
                 col = MixFog(col, IN.fogFactor);
                 return half4(col, 1);

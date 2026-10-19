@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.XR.Management;
 
 // Feature flag: test the scene in plain PC first-person (WASD + mouse) without a headset.
-// Toggle in the editor via menu "Titanic/Desktop Mode (no VR)". Off = normal VR. Builds are always VR.
+// Toggle in the editor via menu "Titanic/Desktop Mode (no VR)", or "mode = pc" in settings.txt (builds).
 // When on, at Play start: stops XR, disables the XR Origin + mirror avatars, enables the old FirstPersonRig.
 public static class DesktopMode
 {
@@ -12,9 +12,9 @@ public static class DesktopMode
     public static bool Enabled
     {
 #if UNITY_EDITOR
-        get => UnityEditor.EditorPrefs.GetBool(PrefKey, false);
+        get => UnityEditor.EditorPrefs.GetBool(PrefKey, false) || GameSettings.Get("mode") == "pc";
 #else
-        get => false;
+        get => GameSettings.Get("mode") == "pc";
 #endif
     }
 

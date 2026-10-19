@@ -9036,6 +9036,67 @@ MeshRenderer:
   m_CorrespondingSourceObject: {fileID: 2676785377106145987, guid: e37270e1573c95a4daa9586e50430c1b, type: 3}
   m_PrefabInstance: {fileID: 1662253068}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &602281008
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 602281009}
+  - component: {fileID: 602281010}
+  m_Layer: 0
+  m_Name: IcebergField
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &602281009
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 602281008}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2008064128}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &602281010
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 602281008}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 540c6a4f25b685d4c81062d1e82a8af7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::IcebergField
+  shapes:
+  - {fileID: 7949606404872829948, guid: e64786f8d1c6f5f4891cbe1f7f46a7a8, type: 3}
+  - {fileID: 1055130786473202080, guid: e64786f8d1c6f5f4891cbe1f7f46a7a8, type: 3}
+  - {fileID: -6015232487650484141, guid: e64786f8d1c6f5f4891cbe1f7f46a7a8, type: 3}
+  - {fileID: 5767668782083635125, guid: e64786f8d1c6f5f4891cbe1f7f46a7a8, type: 3}
+  - {fileID: 8588970539533002788, guid: e64786f8d1c6f5f4891cbe1f7f46a7a8, type: 3}
+  ice: {fileID: 2100000, guid: 11f532726b67aad43ab66c6d30d443c2, type: 2}
+  count: 12
+  range: 160
+  portClear: 32
+  starboardClear: 50
+  farX: 150
+  sizeRange: {x: 0.35, y: 1.15}
+  minSpacing: 45
+  passSpeed: 4
+  stopTime: 25
+  fadeDistance: 40
 --- !u!1 &605768697
 GameObject:
   m_ObjectHideFlags: 0
@@ -13370,8 +13431,11 @@ MonoBehaviour:
   impactLocal: {x: 18.410833, y: 0, z: -31.514935}
   endLocal: {x: 18.410833, y: 0, z: 34.12337}
   approachTime: 25
+  approachDuration: 25
   scrapeTime: 30
   windowGlass:
+  - {fileID: 316924552}
+  - {fileID: 927173222}
   - {fileID: 849234828}
   - {fileID: 595805375}
   - {fileID: 1730759144}
@@ -16079,7 +16143,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 8300000, guid: 36c6bcf0d3df9de478073b585378da91, type: 3}
   m_PlayOnAwake: 0
-  m_Volume: 0.5
+  m_Volume: 0.75
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -31691,6 +31755,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 843405816}
+  - {fileID: 602281009}
   m_Father: {fileID: 23601286}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &2008064129

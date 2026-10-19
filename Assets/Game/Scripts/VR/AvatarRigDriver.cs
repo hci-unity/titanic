@@ -144,7 +144,13 @@ public class AvatarRigDriver : MonoBehaviour
     {
         poseSource = poseSourceBehaviour as IPoseSource;
         animator = GetComponentInChildren<Animator>();
-        if (animator != null) animator.applyRootMotion = false; // we drive the root ourselves
+        if (animator != null)
+        {
+            animator.applyRootMotion = false; // we drive the root ourselves
+            // The full avatar is only visible in the mirror. With culling on, looking away from the mirror froze
+            // the IK and the torso follow (OnAnimatorIK stops), so the first-person body didn't turn with you.
+            animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+        }
         userReach = referenceReach;
 
         headTarget = NewChild("_HeadTarget");
@@ -193,7 +199,9 @@ public class AvatarRigDriver : MonoBehaviour
 
         if (followYaw)
         {
-            Vector3 f = headTarget.forward; f.y = 0f;
+            // Facing = nose direction, blended toward the top of the head as you look down (and the back of the
+            // head as you look up), so looking down at your own body still gives a stable facing.
+            Vector3 f = headTarget.forward - headTarget.up * headTarget.forward.y; f.y = 0f;
             if (f.sqrMagnitude > 1e-6f)
             {
                 float desiredYaw = Quaternion.LookRotation(f).eulerAngles.y;
